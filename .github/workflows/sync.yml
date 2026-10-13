@@ -1,0 +1,25 @@
+name: Approved chart sync
+on:
+  schedule:
+    - cron: '7,17,27,37,47,57 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: chart-sync
+  cancel-in-progress: false
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node scripts/sync.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CHART_SYNC_SECRET: ${{ secrets.CHART_SYNC_SECRET }}
