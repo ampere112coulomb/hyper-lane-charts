@@ -11,7 +11,7 @@ for(const item of queue.items){
  try{
   claim=await (await site(path,{action:'claim'})).json();let result={};
   if(claim.action==='delete')await deletePackage({repo,token},item);
-  else{const response=await site(path,null,claim.lease);if(Number(response.headers.get('Content-Length'))>24*1024*1024)throw Error('ZIP too large');const bytes=new Uint8Array(await response.arrayBuffer());if(bytes.length>24*1024*1024)throw Error('ZIP too large');result=await publishPackage({repo,token},item,bytes);}
+  else{const response=await site(path,null,claim.lease);if(Number(response.headers.get('Content-Length'))>100*1024*1024)throw Error('ZIP too large');const bytes=new Uint8Array(await response.arrayBuffer());if(bytes.length>100*1024*1024)throw Error('ZIP too large');result=await publishPackage({repo,token},item,bytes);}
   await site(path,{action:'complete',lease:claim.lease,...result});console.log(`${item.id}: ${claim.action} complete`);
  }catch{failures++;console.error(`${item.id}: failed; source retained for retry`);if(claim)try{await site(path,{action:'abort',lease:claim.lease});}catch{}}
 }
