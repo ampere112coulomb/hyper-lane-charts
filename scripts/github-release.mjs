@@ -15,14 +15,17 @@ export async function publishPackage(config,row,bytes,fetcher=fetch){
  asset=await request(`/releases/assets/${asset.id}`);
  if(!matches(asset))throw Error('転送後のZIPのサイズ・ハッシュが一致しません。元のZIPは保持しています。');
  const expected=`https://github.com/${config.repo}/releases/download/${tag}/${name}`;
- if(asset.browser_download_url!==expected)throw Error('ダウンロード先の検証に失敗しました。');
  if(release.draft)release=await request(`/releases/${release.id}`,{method:'PATCH',body:JSON.stringify({draft:false,make_latest:'false'})});
  if(release.draft)throw Error('GitHubリリースがまだ非公開です。');
+ // Draft assets have a temporary URL; check the stable URL only after publication.
+ asset=await request(`/releases/assets/${asset.id}`);
+ if(!matches(asset)||asset.browser_download_url!==expected)throw Error('公開後のダウンロード先・ZIPの検証に失敗しました。');
  return {releaseId:release.id,assetId:asset.id,downloadUrl:expected};
 }
 export async function deletePackage(config,row,fetcher=fetch){
  const request=api(config,fetcher),tag=`chart-${row.id}`;
  const release=await request(`/releases/tags/${encodeURIComponent(tag)}`,{missingOK:true});
  if(release){if(row.github_release_id&&release.id!==row.github_release_id)throw Error('削除対象のリリースが一致しません。');await request(`/releases/${release.id}`,{method:'DELETE',missingOK:true});}
- await request(`/git/refs/tags/${encodeURIComponent(tag)}`,{method:'DELETE',missingOK:true});
+ const ref=await request(`/git/ref/tags/${encodeURIComponent(tag)}`,{missingOK:true});
+ if(ref)await request(`/git/refs/tags/${encodeURIComponent(tag)}`,{method:'DELETE',missingOK:true});
 }
